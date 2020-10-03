@@ -1,6 +1,6 @@
 <h1 style="background-color:BlanchedAlmond;font-family:Candara;">Customer Market Segmentation using Clustering</h1>
 
-<a href="https://github.com/ace-it-n/Projects/blob/master/Toxic%20Comment%20Classification%20using%20Natural%20Language%20Processing/toxic-comment-classification-using-nlp.ipynb" target="_blank">Jupyter Notebook on Github</a>
+<a href="https://github.com/ace-it-n/Projects/blob/master/Customer%20Market%20Segmentation%20using%20Clustering/customer-market-segmentation-using-clustering.ipynb" target="_blank">Jupyter Notebook on Github</a>
 
 <h2 style="background-color:Aquamarine;font-family:Candara;">Project Description</h2>
 
