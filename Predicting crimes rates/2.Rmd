@@ -1,0 +1,181 @@
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r, results='hide',message=FALSE}
+##Libraries
+library(dplyr)
+library(rpart)
+library(rpart.plot)
+library(randomForest)
+```
+
+```{r,class.source="bg-danger", class.output="bg-warning"}
+##Raw Dataset
+CrimeData <- read.csv("\\uscrime.txt",sep='\t',header = T)
+
+summary(CrimeData)
+
+```
+```{r}
+##Histogram of crime dataset
+hist(CrimeData$Crime)
+```
+
+```{r}
+##Regression Tree using all the variables
+m1 <- rpart(
+  formula = Crime ~ .,
+  data    = CrimeData,
+  method  = "anova"
+  )
+rpart.plot(m1)
+
+```
+
+
+```{r}
+##Prediction and Error Estimation
+CrimePred_RT <- predict(m1,CrimeData[,-16])
+error <- (abs(CrimePred_RT - CrimeData$Crime))/CrimeData$Crime
+print(paste0("MAPE: ",round(mean(error),2)))
+
+```
+
+```{r}
+# for reproduciblity
+set.seed(123)
+
+##Random Forest Regression
+m2 <- randomForest(
+  formula = Crime ~ .,
+  data    = CrimeData
+)
+
+m2
+
+```
+
+```{r}
+plot(m2)
+```
+
+```{r}
+##Prediction and Error Estimation
+CrimePred_RF <- predict(m2,CrimeData[,-16])
+error <- (abs(CrimePred_RF - CrimeData$Crime))/CrimeData$Crime
+print(paste0("MAPE: ",round(mean(error),2)))
+
+```
+
+```{r}
+## Var Importance
+(importance(m2))
+
+##
+cor(CrimeData$Po1,CrimeData$Po2)
+```
+
+
+```{r, results='hide',message=FALSE}
+##Libraries
+
+library(caTools)
+library(caret)
+library(fastDummies)
+library(ROCR)
+
+```
+
+```{r}
+##Raw Dataset
+GermanCreditData <- read.csv("\\germancredit.txt",sep=' ',header = F)
+
+summary(GermanCreditData)
+
+head(GermanCreditData)
+
+```
+
+```{r}
+##Dummfied Columns
+#GermanCreditData <- GermanCreditData[,c(2,5,8,11,13,16,18,21)]
+GermanCreditData <- dummy_cols(GermanCreditData, select_columns = c("V1", "V3", "V4", "V6", "V7", "V9",
+                                                "V10", "V12", "V14", "V15", "V17",
+                                                "V19", "V20"),remove_first_dummy = TRUE)
+
+GermanCreditData <- subset(GermanCreditData, select=-c(V1,V3,V4,V6,V7,V9,V10,V12,V14,V15,V17,V19,V20))
+```
+
+```{r}
+
+##Update depemdent variable
+GermanCreditData$V21 <- ifelse(GermanCreditData$V21==2,0,1)
+
+# spliting the german data
+set.seed(123)
+split = sample.split(GermanCreditData$V21, SplitRatio = 0.8)
+train = subset(GermanCreditData, split == TRUE)
+test = subset(GermanCreditData, split == FALSE)
+
+```
+
+
+
+```{r}
+##V1 model
+m1 <- glm(V21~.,data=train,family=binomial())
+
+summary(m1)
+
+```
+
+```{r}
+##V2 model
+m2 <- glm(V21~V2+V5+V13+V1_A13+V1_A14+V3_A34+V4_A41+V4_A42+V4_A43+V4_A49+V4_A410+V6_A64+V6_A65+V10_A103+V14_A143,
+          data=train,family=binomial())
+
+summary(m2)
+
+```
+
+
+
+```{r}
+# prediction: predicted default probabilities for cases in test set
+predicted_test <- predict(m2,newdata=test,type="response")
+head(data.frame(test$V21,predicted_test)) 
+
+```
+
+
+```{r}
+predicted_test = floor(predicted_test+0.5)
+# confusion matrix
+confusionMatrix(data = as.factor(predicted_test), reference = as.factor(test$V21))
+```
+
+```{r}
+Total_pred <- predict(m2,type='response',newdata=subset(GermanCreditData[ , -which(names(GermanCreditData) %in% c("V21"))]))
+german_pred <- prediction(Total_pred,GermanCreditData$V21)
+german_perf <- performance(german_pred,"tpr","fpr")
+
+# ROC curve
+plot(performance(german_pred,"tpr","fpr"),col="red")
+
+```
+
+
+
+```{r}
+# prediction: predicted default probabilities for cases in test set
+predicted_test <- predict(m2,newdata=test,type="response")
+
+predicted_test_binary = floor(predicted_test+0.14)
+# confusion matrix
+confusionMatrix(data = as.factor(predicted_test_binary), reference = as.factor(test$V21))
+```
+

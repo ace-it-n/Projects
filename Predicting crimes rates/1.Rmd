@@ -1,0 +1,74 @@
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r, results='hide',message=FALSE}
+##Libraries
+library(dplyr)
+library(corrplot)
+library(factoextra)
+```
+
+```{r,class.source="bg-danger", class.output="bg-warning"}
+##Raw Dataset
+CrimeData <- read.csv("\\uscrime.txt",sep='\t',header = T)
+
+summary(CrimeData)
+
+```
+
+```{r}
+##Calculating Principal Components after removing the dependent variable
+CrimePCA <- prcomp(CrimeData[,-(16)],scale. = TRUE)
+CrimePCA
+
+```
+
+
+```{r}
+##Visualizing the principal components
+fviz_eig(CrimePCA)
+```
+
+```{r}
+##Calculate cumulative variance explained by all the components
+SD_CrimePCA <- CrimePCA$sdev
+Var_CrimePCA <- SD_CrimePCA^2
+PropVar_CrimePCA <- Var_CrimePCA/sum(Var_CrimePCA)
+plot(cumsum(PropVar_CrimePCA), xlab = "Principal Component",
+              ylab = "Cumulative Proportion of Variance Explained",
+              type = "b")
+```
+
+```{r}
+##Reviewing the first five components of PCA result
+(CrimePCA$x[,c(1:5)])
+
+```
+
+
+```{r}
+##Training dataset creation
+TrainData <- data.frame(Crime = CrimeData$Crime,CrimePCA$x[,c(1:5)])
+head(TrainData,5)
+
+```
+
+
+```{r}
+##First cut lm model
+LM_v1 = lm(formula = Crime~.,data = TrainData)
+summary(LM_v1)
+
+```
+
+```{r,}
+
+##Final model
+LM_vf = lm(formula = Crime~PC1+PC2+PC4+PC5,data = TrainData)
+summary(LM_vf)
+
+
+```

@@ -1,0 +1,103 @@
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, results='hide',message=FALSE}
+##Libraries
+library(dplyr)
+library(MASS)
+library(caret)
+library(glmnet)
+```
+
+```{r,class.source="bg-danger", class.output="bg-warning"}
+##Raw Dataset
+CrimeData <- read.csv("\\uscrime.txt",sep='\t',header = T)
+
+summary(CrimeData)
+
+```
+```{r}
+##Histogram of crime dataset
+hist(CrimeData$Crime)
+```
+
+
+```{r}
+# Fit the full model 
+full.model <- lm(Crime ~., data = CrimeData)
+# Stepwise regression model
+step.model <- stepAIC(full.model, direction = "both", 
+                      trace = FALSE)
+summary(step.model)
+
+```
+
+```{r}
+##Scaling the independent variables
+IndependentCols <- colnames(CrimeData)[-16]
+
+pre_proc_val <- preProcess(CrimeData[,IndependentCols], method = c("center", "scale"))
+
+CrimeDataScaled <- CrimeData
+CrimeDataScaled[,IndependentCols] = predict(pre_proc_val, CrimeDataScaled[,IndependentCols])
+
+summary(CrimeDataScaled)
+```
+
+```{r}
+##Variables
+x = as.matrix(CrimeDataScaled[,-16])
+y = CrimeDataScaled$Crime
+
+# Lasso regression
+lambdas <- 10^seq(2, -3, by = -.1)
+
+# Setting alpha = 1 implements lasso regression
+lasso_reg <- cv.glmnet(x, y, alpha = 1, lambda = lambdas, standardize = TRUE, nfolds = 5)
+
+# Best 
+lambda_best <- lasso_reg$lambda.min 
+
+
+##Final model
+lasso_reg_final <- glmnet(x, y, alpha = 1, lambda = lambda_best, standardize = TRUE)
+
+##Beta coeeficients
+lasso_reg_final$beta
+
+##R2
+lasso_reg_final$dev.ratio
+```
+
+```{r,message=FALSE,results='hide'}
+# Set training control
+train_cont <- trainControl(method = "repeatedcv",
+                              number = 10,
+                              repeats = 5,
+                              search = "random",
+                              verboseIter = TRUE)
+
+# Train the model
+elastic_reg <- train(Crime ~ .,
+                           data = CrimeData,
+                           method = "glmnet",
+                           preProcess = c("center", "scale"),
+                           tuneLength = 10,
+                           trControl = train_cont)
+print("-")
+```
+
+```{r}
+# Best tuning parameter
+elastic_reg$bestTune
+
+##Beta values
+coef(elastic_reg$finalModel, elastic_reg$bestTune$lambda)
+
+##R2
+predictions <- elastic_reg %>% predict(CrimeData[,-16])
+R2(predictions, CrimeData$Crime)
+
+```
